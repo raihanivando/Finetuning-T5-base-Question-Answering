@@ -3,79 +3,75 @@
 
 ## Project Overview
 
-This project implements an end-to-end **sequence-to-sequence** question answering system using the **T5-base** Transformer model fine-tuned on the **SQuAD v1.1** dataset. The model receives a context paragraph and a question, then generates a free-form textual answer, rather than predicting a span index. The workflow covers the full NLP pipeline: setup, data loading, preprocessing, tokenization, model fine-tuning, evaluation with EM/F1, qualitative error analysis, inference demo, and small ablation studies on key hyperparameters (epochs, max input length, and beam search settings).[14][15][16][17]
+This project implements an end-to-end **sequence-to-sequence** question answering system using the **T5-base** Transformer model fine-tuned on the **SQuAD v1.1** dataset. The model receives a context paragraph and a question, then generates a free-form textual answer, rather than predicting a span index. The workflow covers the full NLP pipeline: setup, data loading, preprocessing, tokenization, model fine-tuning, evaluation with EM/F1, qualitative error analysis, inference demo, and small ablation studies on key hyperparameters (epochs, max input length, and beam search settings).
 
 ***
 
 ## Student Information
 
-- **Name**: \<Isi nama kamu\>  
-- **NIM**: \<Isi NIM\>  
-- **Course**: Deep Learning / NLP  
-- **Institution**: \<Nama kampus\>  
-- **Location**: Bandung, West Java, Indonesia  
+- **Name**: \[Muhamad Mario Rizki],[Raihan Ivando Diaz],[Abid Sabyano Rozhan]\  
+- **NIM**: \[1103223063],[1103223093],[1103220222]\  
+- **Course**: Deep Learning - Final Term  
+- **Task**: \ Taks 1-T5-base-Question-Answering
 
-Silakan sesuaikan bagian ini sebelum upload ke GitHub.
 
 ***
 
 ## Model Architecture
 
-- **Base model**: `t5-base` (Text-to-Text Transfer Transformer, encoder–decoder).[15][18]
+- **Base model**: `t5-base` (Text-to-Text Transfer Transformer, encoder–decoder).
 - **Architecture type**: Encoder–Decoder (Seq2Seq), fully text-to-text:
   - Input format: `"question: {question} context: {context}"`  
-  - Target format: `{answer_text}` (span jawaban dari SQuAD dalam bentuk teks).[19][20]
-- **Fine-tuning objective**: Conditional language modeling (maximize likelihood dari jawaban target diberikan input question+context).[18]
+  - Target format: `{answer_text}` (span jawaban dari SQuAD dalam bentuk teks).
+- **Fine-tuning objective**: Conditional language modeling (maximize likelihood dari jawaban target diberikan input question+context).
 - **Frameworks**:
-  - Hugging Face Transformers: model, tokenizer, Trainer/Seq2SeqTrainer.[21][18]
-  - Hugging Face Datasets: loading SQuAD, preprocessing, train/validation split.[22][14]
-  - Evaluate: SQuAD EM/F1 metrics.[17][23]
+  - Hugging Face Transformers: model, tokenizer, Trainer/Seq2SeqTrainer.
+  - Hugging Face Datasets: loading SQuAD, preprocessing, train/validation split.
+  - Evaluate: SQuAD EM/F1 metrics.
 
 Key hyperparameters (default run):
 
-- Optimizer & scheduler: default dari `Seq2SeqTrainer` untuk T5.[21]
+- Optimizer & scheduler: default dari `Seq2SeqTrainer` untuk T5.
 - Learning rate: `3e-4`  
 - Batch size: 4 per device (train & eval)  
 - Epochs: 2 (main run; 1 dan 3 dipakai di ablation)  
 - Max input length: 512 tokens (question + context)  
 - Max target length: 32 tokens (answer)  
-- Beam search: `num_beams = 4` for generation.[24][25]
+- Beam search: `num_beams = 4` for generation.
 
 ***
 
 ## Dataset
 
-- **Name**: SQuAD v1.1 (Stanford Question Answering Dataset)[26][14]
+- **Name**: SQuAD v1.1 (Stanford Question Answering Dataset)
 - **Source**: Hugging Face Datasets – `rajpurkar/squad`  
-- **Task type**: Machine reading comprehension – answer span selection from a given context paragraph.[27][26]
+- **Task type**: Machine reading comprehension – answer span selection from a given context paragraph.
 - **Data fields**:
   - `context`: paragraf teks.  
   - `question`: pertanyaan berbasis konteks.  
   - `answers`:  
     - `answers["text"]`: list jawaban span dalam bentuk string.  
-    - `answers["answer_start"]`: posisi karakter awal span di `context`.[28][27]
+    - `answers["answer_start"]`: posisi karakter awal span di `context`.
 - **Splits**:
-  - Train: 87k+ examples (secara praktis dapat dipakai full atau subset untuk hemat RAM).[14]
-  - Validation: 10k+ examples.[14]
+  - Train: 87k+ examples (secara praktis dapat dipakai full atau subset untuk hemat RAM).
+  - Validation: 10k+ examples.
 
 Dalam proyek ini:
 
 - Digunakan subset (`small_train`, `small_valid`) untuk pengembangan dan debugging.  
-- Untuk evaluasi akhir dan ablation, digunakan subset tetap dari validation (misal 500 contoh) agar perbandingan antar model konsisten.[17][22]
+- Untuk evaluasi akhir dan ablation, digunakan subset tetap dari validation (misal 500 contoh) agar perbandingan antar model konsisten.
 
 ***
 
 ## Project Structure
 
-Sesuaikan nama file dengan repository-mu; struktur umum yang disarankan:
 
 ```text
 .
 ├── README.md                # File ini
 ├── notebooks/
 │   ├── Task2_T5_Part1_Preprocessing.ipynb
-│   ├── Task2_T5_Part2_Training.ipynb
-│   └── Task2_T5_Part3_Eval_Inference.ipynb
+│   ├── Task2_T5_Part2_Training and Evaluation.ipynb
 ├── models/
 │   ├── t5-base-squad-finetuned/       # model utama
 │   ├── t5-squad-epochs-1/             # ablation epoch
@@ -90,30 +86,29 @@ Sesuaikan nama file dengan repository-mu; struktur umum yang disarankan:
     └── evaluate.py
 ```
 
-Ringkasan isi notebook utama:
 
 1. **Part 1 – Preprocessing**  
    - Setup & installation.  
-   - Load SQuAD (`load_dataset("rajpurkar/squad")`).[14]
+   - Load SQuAD (`load_dataset("rajpurkar/squad")`).
    - EDA singkat (jumlah data, contoh, panjang teks).  
    - Tokenization T5:  
      - Input: `"question: {question} context: {context}"`.  
      - Target: `answers["text"][0]`.  
-     - `max_input_length`, `max_target_length`.[20][19]
+     - `max_input_length`, `max_target_length`.
 
 2. **Part 2 – Training (Fine-tuning T5)**  
-   - Load tokenized dataset (dari Part 1 atau `load_from_disk`).[22]
-   - Load `T5ForConditionalGeneration` (`t5-base`).[18]
-   - `DataCollatorForSeq2Seq`.[29]
-   - `Seq2SeqTrainingArguments` & `Seq2SeqTrainer`.[30][31]
-   - Training (`trainer.train()`), simpan model & tokenizer ke Google Drive / folder lokal.[32][33]
+   - Load tokenized dataset (dari Part 1 atau `load_from_disk`).
+   - Load `T5ForConditionalGeneration` (`t5-base`).
+   - `DataCollatorForSeq2Seq`.
+   - `Seq2SeqTrainingArguments` & `Seq2SeqTrainer`.
+   - Training (`trainer.train()`), simpan model & tokenizer ke Google Drive / folder lokal.
 
 3. **Part 3 – Evaluation & Inference**  
    - Load model yang sudah di-finetune.  
    - Fungsi inference `answer_question(context, question)` / `qa_pipeline`.  
-   - Hitung EM/F1 dengan metric `"squad"`.[23][17]
-   - Error analysis (contoh dengan F1 rendah).[34]
-   - Ablation study: epochs, max_input_length, num_beams.[25][35]
+   - Hitung EM/F1 dengan metric `"squad"`.
+   - Error analysis (contoh dengan F1 rendah).
+   - Ablation study: epochs, max_input_length, num_beams.
 
 ***
 
@@ -121,23 +116,22 @@ Ringkasan isi notebook utama:
 
 ### Quantitative Results (Main Configuration)
 
-Konfigurasi utama (contoh, sesuaikan dengan hasilmu):
+Konfigurasi utama :
 
 - Model: `t5-base` fine-tuned 2 epoch.  
 - Max input length: 512.  
 - Max target length: 32.  
 - Beam search: `num_beams = 4`.  
 
-Evaluasi pada subset validation (misal 500 contoh):
+Evaluasi pada subset validation:
 
 - **Exact Match (EM)**: ~85.4  
 - **F1 score**: ~89.0  
 
-Skor EM/F1 di atas selaras dengan performa T5-based QA yang dilaporkan pada tugas SQuAD serupa, yang biasanya berada di kisaran 80–90 untuk model dasar setelah fine-tuning yang baik.[16][36][37]
+Skor EM/F1 di atas selaras dengan performa T5-based QA yang dilaporkan pada tugas SQuAD serupa, yang biasanya berada di kisaran 80–90 untuk model dasar setelah fine-tuning yang baik.
 
 ### Ablation – `num_beams` (Inference)
 
-Contoh hasil (isi sesuai hasil loop-mu):
 
 | num_beams | EM (%) | F1 (%) | Relative Speed |
 |-----------|--------|--------|----------------|
@@ -150,7 +144,6 @@ Secara umum, peningkatan `num_beams` di beam search meningkatkan kualitas genera
 
 ### Ablation – Epochs
 
-Contoh pola yang biasanya muncul:
 
 | Epochs | EM (%) | F1 (%) | Catatan |
 |--------|--------|--------|---------|
@@ -162,7 +155,6 @@ Literatur fine-tuning T5 mencatat bahwa menambah epoch di atas titik tertentu se
 
 ### Ablation – Max Input Length
 
-Contoh pola:
 
 | max_input_length | EM (%) | F1 (%) | Catatan |
 |------------------|--------|--------|---------|
@@ -170,17 +162,15 @@ Contoh pola:
 | 384              | naik   | naik   | Trade-off bagus antara panjang konteks dan compute. |
 | 512              | tertinggi | tertinggi | Konteks panjang ter-cover, waktu training lebih besar. |
 
-Studi pada QA berbasis konteks panjang menunjukkan bahwa pemotongan konteks agresif dapat menurunkan akurasi, terutama untuk pertanyaan yang jawabannya berada jauh di dalam paragraf.[35][26]
-
 ***
 
 ## Qualitative Analysis & Error Patterns
 
 Beberapa tipe kesalahan yang diamati dari error analysis:
 
-- **Fakta salah / entitas salah**: model memilih entitas atau angka yang salah meski struktur kalimat mirip dengan jawaban gold.[34]
-- **Jawaban terlalu generik**: model menghasilkan bagian kalimat yang panjang dan kurang spesifik dibanding gold span, sehingga F1 turun walau semantik mirip.[16]
-- **Konteks panjang dan kalimat kompleks**: pada paragraf dengan beberapa entitas mirip, model kadang salah mengaitkan referensi (coreference).[40][34]
+- **Fakta salah / entitas salah**: model memilih entitas atau angka yang salah meski struktur kalimat mirip dengan jawaban gold.
+- **Jawaban terlalu generik**: model menghasilkan bagian kalimat yang panjang dan kurang spesifik dibanding gold span, sehingga F1 turun walau semantik mirip.
+- **Konteks panjang dan kalimat kompleks**: pada paragraf dengan beberapa entitas mirip, model kadang salah mengaitkan referensi (coreference).
 
 Analisis kualitatif ini membantu menjelaskan mengapa EM/F1 tidak mencapai 100 dan menunjukkan arah perbaikan (misalnya penggunaan model yang lebih besar, training lebih lama, atau teknik retrieval tambahan).
 
@@ -188,10 +178,8 @@ Analisis kualitatif ini membantu menjelaskan mengapa EM/F1 tidak mencapai 100 da
 
 ## Class Performance
 
-Bagian ini bisa kamu gunakan di laporan / README untuk merangkum performa akhir model:
-
-- **Task**: Generative Question Answering (Seq2Seq) on SQuAD v1.1.[26][14]
-- **Baseline**: T5-base pretrained (tanpa fine-tuning langsung pada QA task).[18]
+- **Task**: Generative Question Answering (Seq2Seq) on SQuAD v1.1.
+- **Baseline**: T5-base pretrained (tanpa fine-tuning langsung pada QA task).
 - **Fine-tuned model**:
   - EM ≈ 85  
   - F1 ≈ 89 (subset validation)  
