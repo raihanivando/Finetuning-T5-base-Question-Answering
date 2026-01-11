@@ -14,178 +14,206 @@ This project implements an end-to-end **sequence-to-sequence** question answerin
 - **Course**: Deep Learning - Final Term  
 - **Task**: \ Taks 1-T5-base-Question-Answering
 
-
-***
-
 ## Model Architecture
 
-- **Base model**: `t5-base` (Text-to-Text Transfer Transformer, encoder–decoder).
-- **Architecture type**: Encoder–Decoder (Seq2Seq), fully text-to-text:
-  - Input format: `"question: {question} context: {context}"`  
-  - Target format: `{answer_text}` (span jawaban dari SQuAD dalam bentuk teks).
-- **Fine-tuning objective**: Conditional language modeling (maximize likelihood dari jawaban target diberikan input question+context).
-- **Frameworks**:
-  - Hugging Face Transformers: model, tokenizer, Trainer/Seq2SeqTrainer.
-  - Hugging Face Datasets: loading SQuAD, preprocessing, train/validation split.
-  - Evaluate: SQuAD EM/F1 metrics.
+Model utama yang digunakan adalah **T5-base**, sebuah encoder-decoder Transformer untuk task generik text-to-text. 
 
-Key hyperparameters (default run):
+- Checkpoint: `t5-base` dari Hugging Face Transformers. 
+- Komponen utama:
+  - Encoder: stack beberapa `T5Block` dengan self-attention dan feed-forward layer. 
+  - Decoder: stack `T5Block` dengan self-attention, cross-attention ke encoder, dan feed-forward layer. 
+  - Shared embedding antara encoder dan decoder (`shared.Embedding`). 
+  - Output head: linear layer (`lm_head`) yang memetakan hidden states ke vocabulary size (~32.128 token). 
+- Ukuran model:
+  - Hidden size: 768.
+  - Feed-forward dimension: 3072.
+  - Jumlah layer encoder dan decoder: 12 blok. 
 
-- Optimizer & scheduler: default dari `Seq2SeqTrainer` untuk T5.
-- Learning rate: `3e-4`  
-- Batch size: 4 per device (train & eval)  
-- Epochs: 2 (main run; 1 dan 3 dipakai di ablation)  
-- Max input length: 512 tokens (question + context)  
-- Max target length: 32 tokens (answer)  
-- Beam search: `num_beams = 4` for generation.
+Arsitektur ini difinetune secara end-to-end pada SQuAD dengan objective sequence-to-sequence, di mana input berupa teks “question ... context ...” dan target berupa teks jawaban. 
 
-***
+---
 
 ## Dataset
 
-- **Name**: SQuAD v1.1 (Stanford Question Answering Dataset)
-- **Source**: Hugging Face Datasets – `rajpurkar/squad`  
-- **Task type**: Machine reading comprehension – answer span selection from a given context paragraph.
-- **Data fields**:
-  - `context`: paragraf teks.  
-  - `question`: pertanyaan berbasis konteks.  
-  - `answers`:  
-    - `answers["text"]`: list jawaban span dalam bentuk string.  
-    - `answers["answer_start"]`: posisi karakter awal span di `context`.
-- **Splits**:
-  - Train: 87k+ examples (secara praktis dapat dipakai full atau subset untuk hemat RAM).
-  - Validation: 10k+ examples.
+### Deskripsi SQuAD
 
-Dalam proyek ini:
+Proyek menggunakan **SQuAD v1.1** yang dimuat melalui `datasets.load_dataset("rajpurkar/squad")`. 
 
-- Digunakan subset (`small_train`, `small_valid`) untuk pengembangan dan debugging.  
-- Untuk evaluasi akhir dan ablation, digunakan subset tetap dari validation (misal 500 contoh) agar perbandingan antar model konsisten.
+- Split dataset:
+  - Train: 87.599 contoh. 
+  - Validation: 10.570 contoh. 
+- Fitur per contoh:
+  - `id`: identitas unik untuk setiap Q&A pair. 
+  - `title`: judul artikel Wikipedia. 
+  - `context`: paragraf teks di mana jawaban berada. 
+  - `question`: pertanyaan natural language. 
+  - `answers`: struktur dengan `text` dan `answer_start`. 
 
-***
+### Subset untuk Eksperimen
+
+Untuk mengurangi beban komputasi di Colab, proyek menggunakan subset data: 
+
+- `small_train`: 5.000 contoh pertama dari train.
+- `small_valid`: 1.000 contoh pertama dari validation.
+
+Subset ini digunakan untuk:
+- Eksperimen awal preprocessing dan tokenisasi.
+- Training utama dan beberapa ablation dengan resource GPU terbatas. 
+
+### Preprocessing dan Tokenisasi
+
+Dataset diubah ke format text-to-text sebagai berikut: 
+
+- Input:
+  - Format string: `"question {question} context {context}"`.
+- Target:
+  - Jawaban pertama `answers["text"][0]` jika tersedia, atau string kosong jika tidak ada jawaban. 
+
+Tokenisasi menggunakan `T5TokenizerFast` dengan parameter: 
+
+- `max_input_length`: dicoba beberapa nilai seperti 256, 384, dan 512 untuk keperluan ablation. 
+- `max_target_length`: sekitar 32 token. 
+- Padding: `padding="max_length"`.
+- Truncation: `True` untuk memotong input yang terlalu panjang. 
+
+Hasil tokenisasi (`input_ids`, `attention_mask`, dan `labels`) kemudian disimpan ke Google Drive agar dapat di-load kembali pada tahap training. 
+
+---
 
 ## Project Structure
 
+Struktur logis proyek (berdasarkan dua notebook utama) adalah sebagai berikut: 
 
 ```text
-.
-├── README.md                # File ini
-├── notebooks/
-│   ├── Task2_T5_Part1_Preprocessing.ipynb
-│   ├── Task2_T5_Part2_Training and Evaluation.ipynb
-├── models/
-│   ├── t5-base-squad-finetuned/       # model utama
-│   ├── t5-squad-epochs-1/             # ablation epoch
-│   ├── t5-squad-epochs-2/
-│   ├── t5-squad-epochs-3/
-│   ├── t5-squad-maxlen-256/           # ablation max_input_length
-│   ├── t5-squad-maxlen-384/
-│   └── t5-squad-maxlen-512/
-└── scripts/                           # optional jika dipisah dari notebook
-    ├── preprocess.py
-    ├── train.py
-    └── evaluate.py
+Finetuning-T5-base-Question-Answering/
+├── README.md # Project documentation
+├── notebooks/ # Jupyter notebooks
+│ ├── Task2_T5_QA_SQuAD_Part1_Preprocessing.ipynb # Data loading, preprocessing, tokenization
+│ ├── Task2_T5_QA_SQuAD_Part1_Training_and_Evaluation.ipynb # Training and Evaluation
+└── Reports
+
 ```
 
+### 1. `Task2_T5_QA_SQuAD_Part1_Preprocessing.ipynb`
 
-1. **Part 1 – Preprocessing**  
-   - Setup & installation.  
-   - Load SQuAD (`load_dataset("rajpurkar/squad")`).
-   - EDA singkat (jumlah data, contoh, panjang teks).  
-   - Tokenization T5:  
-     - Input: `"question: {question} context: {context}"`.  
-     - Target: `answers["text"][0]`.  
-     - `max_input_length`, `max_target_length`.
+Notebook ini menangani tahap awal: 
 
-2. **Part 2 – Training (Fine-tuning T5)**  
-   - Load tokenized dataset (dari Part 1 atau `load_from_disk`).
-   - Load `T5ForConditionalGeneration` (`t5-base`).
-   - `DataCollatorForSeq2Seq`.
-   - `Seq2SeqTrainingArguments` & `Seq2SeqTrainer`.
-   - Training (`trainer.train()`), simpan model & tokenizer ke Google Drive / folder lokal.
+- Setup lingkungan:
+  - Install library (`transformers`, `datasets`, `accelerate`, `evaluate`, `sentencepiece`). 
+  - Cek PyTorch dan CUDA. 
+- Load dataset:
+  - `load_dataset("rajpurkar/squad")` untuk train dan validation. 
+  - Buat subset `small_train` (5k) dan `small_valid` (1k). 
+- Exploratory Data Analysis (EDA):
+  - Analisis panjang pertanyaan dan konteks (contoh distribusi panjang). 
+  - Menampilkan beberapa contoh Q&A. 
+- Preprocessing:
+  - Definisi fungsi `build_preprocess_fn(tokenizer, max_input_length, max_target_length)` untuk membuat fungsi preprocess berbasis parameter panjang input dan target. 
+  - Menggabungkan question dan context ke dalam satu string input, serta menyiapkan target jawaban. 
+- Tokenisasi dan penyimpanan:
+  - `tokenized_train = small_train.map(preprocess_fn, ...)`.
+  - `tokenized_valid = small_valid.map(preprocess_fn, ...)`. 
+  - Menyimpan hasil ke disk (Google Drive) menggunakan `save_to_disk`. 
 
-3. **Part 3 – Evaluation & Inference**  
-   - Load model yang sudah di-finetune.  
-   - Fungsi inference `answer_question(context, question)` / `qa_pipeline`.  
-   - Hitung EM/F1 dengan metric `"squad"`.
-   - Error analysis (contoh dengan F1 rendah).
-   - Ablation study: epochs, max_input_length, num_beams.
+### 2. `Task2_T5_QA_SQuAD_Part1_Training_and_Evaluation.ipynb`
 
-***
+Notebook ini fokus pada pemanfaatan dataset ter-tokenisasi untuk training, evaluasi, dan ablation study. 
 
-## Results
+- Setup & load:
+  - Mount Google Drive dan load dataset tokenized dari folder yang sudah dibuat di Part 1. 
+- Model & Data Collator:
+  - Load `T5ForConditionalGeneration` dan `T5TokenizerFast` dari checkpoint `t5-base`. 
+  - Definisikan `DataCollatorForSeq2Seq` untuk dynamic padding. 
+- Training core:
+  - Definisikan `Seq2SeqTrainingArguments` (batch size, learning rate, epoch, logging, fp16). 
+  - Inisialisasi `Seq2SeqTrainer` dan jalankan `trainer.train()`. 
+  - Simpan model dan tokenizer ke local path dan ke Google Drive. 
+- Evaluasi:
+  - Gunakan metrik SQuAD (`evaluate.load("squad")`) untuk EM dan F1 pada subset validation. 
+  - Definisikan helper `evaluate_model(model_dir, val_subset)` untuk mengevaluasi model yang disimpan. 
+- Ablation & Analisis:
+  - Eksperimen variasi `num_beams`, `max_input_length`, dan `num_train_epochs`. 
+  - Error analysis untuk contoh dengan skor F1 rendah. 
+- Demo inference:
+  - Fungsi `answer_question(context, question)` dan `qa_pipeline(context, question, num_beams)` untuk uji coba interaktif. 
 
-### Quantitative Results (Main Configuration)
+---
 
-Konfigurasi utama :
+## Result
 
-- Model: `t5-base` fine-tuned 2 epoch.  
-- Max input length: 512.  
-- Max target length: 32.  
-- Beam search: `num_beams = 4`.  
+Bagian ini merangkum hasil training dan evaluasi utama yang diperoleh dari eksperimen pada subset SQuAD. 
 
-Evaluasi pada subset validation:
+### Metrik Utama (EM & F1)
 
-- **Exact Match (EM)**: ~85.4  
-- **F1 score**: ~89.0  
+Evaluasi dilakukan menggunakan metrik resmi SQuAD pada subset validation (misalnya 500 contoh) untuk model T5 yang telah difinetune. 
 
-Skor EM/F1 di atas selaras dengan performa T5-based QA yang dilaporkan pada tugas SQuAD serupa, yang biasanya berada di kisaran 80–90 untuk model dasar setelah fine-tuning yang baik.
+- Konfigurasi baseline (contoh umum):
+  - Model: `t5-base` difinetune pada 5.000 contoh train.
+  - `num_train_epochs`: 2.
+  - `num_beams`: 4 untuk inference baseline. 
+- Hasil metrik pada subset:
+  - Exact Match (EM): sekitar **83–84%**. 
+  - F1 score: sekitar **89–90%**. 
 
-### Ablation – `num_beams` (Inference)
+Notebook juga menampilkan hasil evaluasi dengan beberapa nilai `num_beams`, misalnya: 
 
+- `num_beams = 1`:
+  - EM ≈ 84.20
+  - F1 ≈ 89.86
+  - Waktu inference ~11–13 detik pada subset yang sama. 
+- `num_beams = 2`:
+  - EM ≈ 83.20
+  - F1 ≈ 89.18
+  - Waktu inference lebih lambat dibanding `num_beams=1`. 
+- `num_beams = 4`:
+  - EM ≈ 83.20
+  - F1 ≈ 89.29
+  - Waktu inference ~27–30 detik. 
+- `num_beams = 8`:
+  - EM sedikit turun ke kisaran 82–83%.
+  - F1 turun ke kisaran 88–89%.
+  - Waktu inference meningkat signifikan (~40–50 detik). 
 
-| num_beams | EM (%) | F1 (%) | Relative Speed |
-|-----------|--------|--------|----------------|
-| 1         | ~84.2  | ~89.0  | Fastest        |
-| 2         | ~83.2  | ~89.1  | Fast           |
-| 4         | ~83.2–85.0 | ~89.2 | Medium       |
-| 8         | ~82.6  | ~88.7  | Slowest        |
-
-Secara umum, peningkatan `num_beams` di beam search meningkatkan kualitas generasi sampai titik tertentu, namun memperlambat inference; di sini `num_beams=4` memberi trade-off yang baik.[38][25]
-
-### Ablation – Epochs
-
-
-| Epochs | EM (%) | F1 (%) | Catatan |
-|--------|--------|--------|---------|
-| 1      | sedikit lebih rendah | sedikit lebih rendah | Model belum sepenuhnya konvergen. |
-| 2      | tertinggi            | tertinggi            | Titik optimum untuk validasi. |
-| 3      | mirip / sedikit turun | mirip / sedikit turun | Indikasi awal overfitting di validation. |
-
-Literatur fine-tuning T5 mencatat bahwa menambah epoch di atas titik tertentu sering tidak meningkatkan, bahkan menurunkan performa di validation karena overfitting.[31][39]
-
-### Ablation – Max Input Length
-
-
-| max_input_length | EM (%) | F1 (%) | Catatan |
-|------------------|--------|--------|---------|
-| 256              | lebih rendah | lebih rendah | Beberapa jawaban hilang karena konteks terpotong. |
-| 384              | naik   | naik   | Trade-off bagus antara panjang konteks dan compute. |
-| 512              | tertinggi | tertinggi | Konteks panjang ter-cover, waktu training lebih besar. |
-
-***
-
-## Qualitative Analysis & Error Patterns
-
-Beberapa tipe kesalahan yang diamati dari error analysis:
-
-- **Fakta salah / entitas salah**: model memilih entitas atau angka yang salah meski struktur kalimat mirip dengan jawaban gold.
-- **Jawaban terlalu generik**: model menghasilkan bagian kalimat yang panjang dan kurang spesifik dibanding gold span, sehingga F1 turun walau semantik mirip.
-- **Konteks panjang dan kalimat kompleks**: pada paragraf dengan beberapa entitas mirip, model kadang salah mengaitkan referensi (coreference).
-
-Analisis kualitatif ini membantu menjelaskan mengapa EM/F1 tidak mencapai 100 dan menunjukkan arah perbaikan (misalnya penggunaan model yang lebih besar, training lebih lama, atau teknik retrieval tambahan).
-
-***
-
+Hasil ini menunjukkan trade-off antara kualitas dan kecepatan inference, dengan `num_beams=1` sudah cukup kompetitif sekaligus paling efisien. 
 ## Class Performance
 
-- **Task**: Generative Question Answering (Seq2Seq) on SQuAD v1.1.
-- **Baseline**: T5-base pretrained (tanpa fine-tuning langsung pada QA task).
-- **Fine-tuned model**:
-  - EM ≈ 85  
-  - F1 ≈ 89 (subset validation)  
-- **Kualitas jawaban**:
-  - Jawaban sering tepat untuk pertanyaan faktual langsung (who/what/where/when).  
-  - Kesulitan muncul pada pertanyaan yang memerlukan reasoning lebih panjang atau coreference kompleks.[34]
-- **Kapasitas generalisasi**:
-  - Pada konteks di luar SQuAD (contoh manual, misalnya paragraf tentang Bandung), model mampu menghasilkan jawaban yang wajar selama gaya teks dan bahasa serupa dengan data training.[41][19]
+Bagian ini merangkum performa model dalam konteks “kelas” konfigurasi atau setting eksperimen yang berbeda, bukan kelas label seperti klasifikasi. 
 
+### Performa berdasarkan konfigurasi decoding (`num_beams`)
+
+| Konfigurasi (kelas)        | EM (±) | F1 (±) | Waktu Inference (subset) | Catatan                                                                 |
+|----------------------------|--------|--------|---------------------------|-------------------------------------------------------------------------|
+| `num_beams = 1`           | ~84.2  | ~89.9  | ~11–13 s                  | Paling cepat, performa sudah sangat baik.                       |
+| `num_beams = 2`           | ~83.2  | ~89.2  | Lebih lambat dari 1      | Tidak memberi peningkatan signifikan.                           |
+| `num_beams = 4`           | ~83.2  | ~89.3  | ~27–30 s                  | Digunakan sebagai konfigurasi baseline.                         |
+| `num_beams = 8`           | ~82–83 | ~88–89 | ~40–50 s                  | Kualitas sedikit menurun, waktu meningkat drastis.             |
+
+### Performa berdasarkan panjang input (`max_input_length`)
+
+Notebook menyiapkan eksperimen untuk beberapa kelas panjang input: 
+
+- `max_input_length = 256`
+- `max_input_length = 384`
+- `max_input_length = 512`
+
+Untuk setiap kelas panjang input:
+- Dataset di-tokenisasi ulang sesuai `max_input_length`. 
+- Model dilatih 1 epoch dan disimpan di direktori `t5-squad-maxlen-{maxlen}`. 
+- Struktur `ablation_maxlen` dibuat untuk menyimpan EM dan F1 per konfigurasi, meskipun sebagian nilai masih placeholder pada snapshot. 
+
+Secara intuitif, panjang input lebih besar memungkinkan konteks yang lebih lengkap, tetapi dengan biaya waktu training dan inference yang lebih tinggi. 
+
+### Performa berdasarkan jumlah epoch (`num_train_epochs`)
+
+Terdapat fungsi helper untuk melatih model dengan kelas epoch berbeda: 1, 2, dan 3 epoch. 
+
+- Direktori output:
+  - `t5-squad-epochs-1`
+  - `t5-squad-epochs-2`
+  - `t5-squad-epochs-3` 
+- Struktur `ablation_epochs` menggambarkan rencana pencatatan EM dan F1 untuk masing-masing kelas epoch, walaupun tidak semua hasil numerik final tereksekusi di snapshot. 
+
+Tren umum yang diharapkan:
+- 1 epoch: training loss lebih tinggi, EM/F1 sedikit lebih rendah.
+- 2 epoch: titik sweet-spot antara kualitas dan waktu. 
+- 3 epoch: potensi peningkatan kecil atau overfitting tergantung subset dan regularisasi. 
