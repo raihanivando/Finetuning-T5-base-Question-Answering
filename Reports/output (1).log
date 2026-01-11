@@ -1,0 +1,82 @@
+Drive already mounted at /content/drive; to attempt to forcibly remount, call drive.mount("/content/drive", force_remount=True).
+================================================================================
+Question: How might gravity effects be observed differently according to Newton?
+Gold   : at larger distances.
+Pred   : larger distances
+================================================================================
+Question: What is the prize offered for finding a solution to P=NP?
+Gold   : $1,000,000
+Pred   : US$1,000,000
+================================================================================
+Question: What color were the Bronco's uniforms in Super Bowl 50?
+Gold   : white
+Pred   : white
+{'exact_match': 85.4, 'f1': 89.01572263993319}
+================================================================================
+ID       : 56d2045de7d4791d009025f5
+Question : How many times have the Panthers been in the Super Bowl?
+Gold     : ['2', 'second', 'second']
+Pred     : eight
+EM / F1  : 0.0 / 0.0
+================================================================================
+ID       : 56d2045de7d4791d009025f6
+Question : Who did Denver beat in the AFC championship?
+Gold     : ['New England Patriots', 'the New England Patriots', 'New England Patriots']
+Pred     : the Arizona Cardinals
+EM / F1  : 0.0 / 0.0
+================================================================================
+ID       : 56d6017d1c85041400946ec1
+Question : Who did Denver beat in the 2015 AFC Championship game?
+Gold     : ['New England Patriots', 'the New England Patriots', 'New England Patriots']
+Pred     : the Arizona Cardinals
+EM / F1  : 0.0 / 0.0
+================================================================================
+ID       : 56beaf5e3aeaaa14008c9200
+Question : What halftime performer previously headlined Super Bowl XLVIII?
+Gold     : ['Bruno Mars', 'Bruno Mars', 'Mars']
+Pred     : Beyoncé
+EM / F1  : 0.0 / 0.0
+================================================================================
+ID       : 56beaf5e3aeaaa14008c9201
+Question : Who was the main performer at this year's halftime show?
+Gold     : ['Coldplay', 'Coldplay', 'Coldplay']
+Pred     : Beyoncé and Bruno Mars
+EM / F1  : 0.0 / 0.0
+Question: What is Bandung the capital city of?
+Answer  : West Java province
+
+=== Evaluating with num_beams = 1 ===
+EM: 86.40, F1: 89.26, Time: 12.2 s
+
+=== Evaluating with num_beams = 2 ===
+EM: 85.60, F1: 89.20, Time: 14.8 s
+
+=== Evaluating with num_beams = 4 ===
+EM: 85.40, F1: 89.02, Time: 23.7 s
+
+=== Evaluating with num_beams = 8 ===
+EM: 85.40, F1: 89.02, Time: 39.1 s
+
+Summary num_beams ablation:
+num_beams=1: EM=86.40, F1=89.26, time=12.2s
+num_beams=2: EM=85.60, F1=89.20, time=14.8s
+num_beams=4: EM=85.40, F1=89.02, time=23.7s
+num_beams=8: EM=85.40, F1=89.02, time=39.1s
+
+=== Training 1 epoch ===
+/tmp/ipython-input-3310871820.py:33: FutureWarning: `tokenizer` is deprecated and will be removed in version 5.0.0 for `Seq2SeqTrainer.__init__`. Use `processing_class` instead.
+  trainer = Seq2SeqTrainer(
+
+=== Training 2 epoch ===
+/tmp/ipython-input-3310871820.py:33: FutureWarning: `tokenizer` is deprecated and will be removed in version 5.0.0 for `Seq2SeqTrainer.__init__`. Use `processing_class` instead.
+  trainer = Seq2SeqTrainer(
+
+=== Training 3 epoch ===
+/tmp/ipython-input-3310871820.py:33: FutureWarning: `tokenizer` is deprecated and will be removed in version 5.0.0 for `Seq2SeqTrainer.__init__`. Use `processing_class` instead.
+  trainer = Seq2SeqTrainer(
+
+=== max_input_length = 256 ===
+
+=== max_input_length = 256 ===
+
+=== max_input_length = 256 ===
